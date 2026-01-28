@@ -239,8 +239,8 @@ nginx -s reload
 | Port | Service | Description |
 |------|---------|-------------|
 | 3000 | Nginx | **Unified Entry** - All external requests through here |
-| 5000 | code-server | VS Code IDE interface |
-| 8000 | OpenCode AI | AI-assisted programming service |
+| 4096 | OpenCode Server | OpenCode AI server (internal) |
+| 8080 | Application | Example application port |
 | Others | Application Pods | Accessed through Kubernetes Service |
 
 ---

@@ -67,8 +67,14 @@ cat /var/run/secrets/kubernetes.io/serviceaccount/namespace
 
 **Example:**
 ```bash
-# Deploy Python web app
-olares-deploy my-app python:3.11-slim 8080 "pip install flask && python app.py"
+# Step 1: Deploy
+olares-deploy myapp python:3.11-slim 8080 "python app.py"
+
+# Step 2: Update Nginx (Mandatory!)
+python3 olares-nginx-config
+
+# Step 3: Access
+https://{hash}-3000.{domain}/myapp/
 ```
 
 ### Automatic Deployment Workflow
@@ -1213,7 +1219,7 @@ charlie
 ```bash
 # 1. Develop application locally or in OpenCode
 # 2. Deploy for testing
-olares-deploy myapp python:3.11-slim 5000 "python app.py"
+olares-deploy myapp python:3.11-slim 8080 "python app.py"
 
 # 3. Update Nginx
 python3 /root/.local/bin/olares-nginx-config
@@ -1352,7 +1358,7 @@ helm lint myapp/
 helm template myapp myapp/ --debug
 
 # DevBox deployment
-olares-deploy myapp python:3.11-slim 5000 "python app.py"
+olares-deploy myapp python:3.11-slim 8080 "python app.py"
 
 # Update Nginx reverse proxy
 python3 /root/.local/bin/olares-nginx-config
