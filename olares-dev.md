@@ -442,6 +442,170 @@ When `middleware.postgres` is configured, Olares injects these variables:
 | `{{ .Values.postgres.password }}` | Auto-generated password | `xK9...abc` |
 | `{{ .Values.postgres.databases.myapp_db }}` | Database name | `myapp_db_xxx` |
 
+### Using Database Environment Variables in Application Code
+
+After configuring environment variables in `deployment.yaml`, your application receives these values at runtime. Here's how to use them in different languages:
+
+**Common Environment Variable Names (configure in deployment.yaml):**
+
+| Env Variable | Helm Template Value | Runtime Example |
+|--------------|---------------------|-----------------|
+| `DB_HOST` | `{{ .Values.postgres.host }}` | `citus-master-svc.user-system-xxx` |
+| `DB_PORT` | `{{ .Values.postgres.port }}` | `5432` |
+| `DB_USER` | `{{ .Values.postgres.username }}` | `myapp_xxx_user` |
+| `DB_PASSWORD` | `{{ .Values.postgres.password }}` | `XJBVYOFh7Wr...` |
+| `DB_DATABASE` | `{{ .Values.postgres.databases.<name> }}` | `myapp_db_xxx` |
+
+**Python Example (using psycopg2):**
+
+```python
+import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
+def get_db_connection():
+    """Create database connection using Olares-injected environment variables"""
+    return psycopg2.connect(
+        host=os.environ.get('DB_HOST'),
+        port=os.environ.get('DB_PORT', '5432'),
+        user=os.environ.get('DB_USER'),
+        password=os.environ.get('DB_PASSWORD'),
+        database=os.environ.get('DB_DATABASE'),
+        cursor_factory=RealDictCursor
+    )
+
+# Alternative: Build connection string
+def get_database_url():
+    """Build PostgreSQL connection URL from environment variables"""
+    return (
+        f"postgresql://{os.environ['DB_USER']}:{os.environ['DB_PASSWORD']}"
+        f"@{os.environ['DB_HOST']}:{os.environ.get('DB_PORT', '5432')}"
+        f"/{os.environ['DB_DATABASE']}"
+    )
+```
+
+**Python Example (using SQLAlchemy):**
+
+```python
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+# Build connection URL from environment variables
+DATABASE_URL = (
+    f"postgresql://{os.environ['DB_USER']}:{os.environ['DB_PASSWORD']}"
+    f"@{os.environ['DB_HOST']}:{os.environ.get('DB_PORT', '5432')}"
+    f"/{os.environ['DB_DATABASE']}"
+)
+
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+SessionLocal = sessionmaker(bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+```
+
+**Node.js Example (using pg):**
+
+```javascript
+const { Pool } = require('pg');
+
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT || '5432'),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
+});
+
+// Query example
+async function getUsers() {
+  const { rows } = await pool.query('SELECT * FROM users');
+  return rows;
+}
+```
+
+**Go Example (using pgx):**
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+
+    "github.com/jackc/pgx/v5/pgxpool"
+)
+
+func connectDB() (*pgxpool.Pool, error) {
+    connStr := fmt.Sprintf(
+        "postgres://%s:%s@%s:%s/%s",
+        os.Getenv("DB_USER"),
+        os.Getenv("DB_PASSWORD"),
+        os.Getenv("DB_HOST"),
+        os.Getenv("DB_PORT"),
+        os.Getenv("DB_DATABASE"),
+    )
+    return pgxpool.New(context.Background(), connStr)
+}
+```
+
+**Rust Example (using sqlx):**
+
+```rust
+use sqlx::postgres::PgPoolOptions;
+use std::env;
+
+async fn connect_db() -> Result<sqlx::PgPool, sqlx::Error> {
+    let database_url = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        env::var("DB_USER").expect("DB_USER required"),
+        env::var("DB_PASSWORD").expect("DB_PASSWORD required"),
+        env::var("DB_HOST").expect("DB_HOST required"),
+        env::var("DB_PORT").unwrap_or_else(|_| "5432".to_string()),
+        env::var("DB_DATABASE").expect("DB_DATABASE required"),
+    );
+
+    PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await
+}
+```
+
+**Best Practices:**
+
+1. **Always use environment variables** - Never hardcode database credentials
+2. **Provide defaults for port** - `DB_PORT` is usually `5432` but be explicit
+3. **Use connection pooling** - PostgreSQL has limited connections, use pools
+4. **Handle connection errors gracefully** - The database may not be ready immediately on startup
+5. **Verify variables exist** - Check at startup if required variables are set
+
+**Health Check Pattern:**
+
+```python
+def check_database_health():
+    """Verify database connection and environment variables"""
+    required_vars = ['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD', 'DB_DATABASE']
+
+    missing = [var for var in required_vars if not os.environ.get(var)]
+    if missing:
+        raise EnvironmentError(f"Missing database variables: {missing}")
+
+    try:
+        conn = get_db_connection()
+        conn.execute("SELECT 1")
+        conn.close()
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}
+```
+
 ### Troubleshooting Database Connections
 
 **Issue: Connection refused**
