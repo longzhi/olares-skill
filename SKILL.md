@@ -110,23 +110,11 @@ After completing ANY development task (when code is written and working), you MU
 
 ```
 ---
-## ✅ 开发完成！Development Complete!
+## ✅ 开发完成！
 
-您的应用已准备就绪。Your application is ready.
+📁 项目位置: `/root/workspace/<app-name>/`
 
-📁 项目位置 / Project Location: `/root/workspace/<app-name>/`
-
-**下一步 / Next Step:**
-
-只需回复以下任意一个词，我将自动发布到 Olares：
-Just reply with any of these words, and I'll publish to Olares automatically:
-
-| 命令 | Command | 效果 |
-|------|---------|------|
-| **发布** | **publish** | 发布到 Olares 正式环境 |
-| **然后呢** | **next** | 继续下一步 |
-
-💡 回复 "发布" 或 "publish" 即可完成发布。
+**是否发布到 Olares？** 回复 "发布" 即可一键部署上线。
 ```
 
 **WHY THIS IS CRITICAL:**
@@ -142,14 +130,11 @@ Just reply with any of these words, and I'll publish to Olares automatically:
 测试结果：所有功能正常。
 
 ---
-## ✅ 开发完成！Development Complete!
+## ✅ 开发完成！
 
-您的应用已准备就绪。Your application is ready.
+📁 项目位置: `/root/workspace/todo-app/`
 
-📁 项目位置 / Project Location: `/root/workspace/todo-app/`
-
-**下一步 / Next Step:**
-...
+**是否发布到 Olares？** 回复 "发布" 即可一键部署上线。
 ```
 
 **Example - WRONG response ending (NEVER DO THIS):**
