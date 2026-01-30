@@ -2,6 +2,30 @@
 
 ## ⚠️ CRITICAL RULES - READ FIRST
 
+### Project Directory: ALWAYS /root/workspace/, NEVER ASK
+
+| DO | DON'T |
+|----|-------|
+| ✅ Create project at `/root/workspace/<app-name>/` automatically | ❌ Ask "where do you want the project?" |
+| ✅ Derive app-name from user's request (e.g., "todo app" → `todo-app`) | ❌ Ask user to choose a directory |
+| ✅ Start coding immediately in the correct location | ❌ Offer directory choices |
+
+**WHY:** Olares deployment mounts `/root/workspace/` to containers. All apps MUST be here.
+
+**Example - Correct behavior:**
+```
+User: "帮我做一个投票应用"
+AI: (Immediately creates /root/workspace/voting-app/ and starts coding)
+```
+
+**Example - WRONG behavior:**
+```
+User: "帮我做一个投票应用"  
+AI: "项目放在哪个目录？"  ← NEVER DO THIS
+```
+
+---
+
 ### Database: ALWAYS PostgreSQL, NEVER ASK
 
 When developing ANY application that needs data persistence:
@@ -49,11 +73,12 @@ AI: "你想用什么数据库？PostgreSQL? MySQL? SQLite?"  ← NEVER DO THIS
 │  1. User requests development                                     │
 │     ↓                                                             │
 │  2. AI develops the application                                   │
+│     • Create project at /root/workspace/<app-name>/               │
 │     • Detect if database needed → Use PostgreSQL (injected)       │
 │     • Write complete, runnable code                               │
 │     • Include all necessary files                                 │
 │     ↓                                                             │
-│  3. AI MUST end with publish prompt (see below)                   │
+│  3. ⚠️ AI MUST end with publish prompt (MANDATORY - see below)    │
 │     ↓                                                             │
 │  4. User confirms publish                                         │
 │     ↓                                                             │
@@ -65,8 +90,17 @@ AI: "你想用什么数据库？PostgreSQL? MySQL? SQLite?"  ← NEVER DO THIS
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**POST-DEVELOPMENT PROMPT (MANDATORY):**
-After completing ANY development task, you MUST end your response with EXACTLY:
+### ⚠️ POST-DEVELOPMENT PROMPT (MANDATORY - NEVER SKIP)
+
+**THIS IS NON-NEGOTIABLE. EVERY development task MUST end with this prompt.**
+
+After completing ANY development task (when code is written and working), you MUST:
+1. Include the exact prompt block below in your response
+2. This prompt MUST be the LAST thing in your response
+3. Do NOT end your response without this prompt
+4. Do NOT ask other questions after development - only show this prompt
+
+**COPY THIS EXACT BLOCK at the end of your development response:**
 
 ```
 ---
@@ -74,22 +108,56 @@ After completing ANY development task, you MUST end your response with EXACTLY:
 
 您的应用已准备就绪。Your application is ready.
 
+📁 项目位置 / Project Location: `/root/workspace/<app-name>/`
+
 **下一步 / Next Step:**
 
-只需回复以下任意一个词，我将自动发布：
-Just reply with any of these words, and I'll publish automatically:
+只需回复以下任意一个词，我将自动发布到 Olares：
+Just reply with any of these words, and I'll publish to Olares automatically:
 
 | 命令 | Command | 效果 |
 |------|---------|------|
 | **发布** | **publish** | 发布到 Olares 正式环境 |
+| **然后呢** | **next** | 继续下一步 |
 
 💡 回复 "发布" 或 "publish" 即可完成发布。
+```
+
+**WHY THIS IS CRITICAL:**
+- Users expect a clear next step after development
+- Without this prompt, the workflow feels incomplete
+- Users may not know they can publish with a single word
+- This ensures consistent user experience
+
+**Example - CORRECT response ending:**
+```
+[... development code ...]
+
+测试结果：所有功能正常。
+
+---
+## ✅ 开发完成！Development Complete!
+
+您的应用已准备就绪。Your application is ready.
+
+📁 项目位置 / Project Location: `/root/workspace/todo-app/`
+
+**下一步 / Next Step:**
+...
+```
+
+**Example - WRONG response ending (NEVER DO THIS):**
+```
+[... development code ...]
+
+开发完成！如果有问题请告诉我。  ← WRONG: Missing publish prompt
 ```
 
 ### Publish Triggers (AUTO-EXECUTE)
 
 **Trigger Keywords (User confirms publish):**
 - Publish: "发布" / "publish" / "好" / "可以" / "OK" / "yes" / "确认" / "同意" / "go" / "上线" / "打包" / "package" / "release"
+- Continue: "然后呢" / "next" / "继续" / "下一步" / "接下来"
 
 **CRITICAL: When user says ANY of these after development, IMMEDIATELY execute publish to Olares. NO further confirmation needed.**
 
