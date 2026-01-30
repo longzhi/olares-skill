@@ -1109,6 +1109,97 @@ nginx
 nginx -s reload
 ```
 
+**Issue: App configs in `/etc/nginx/conf.d/dev/` not loaded (CRITICAL)**
+
+The default Nginx configuration only includes `*.conf` files in `/etc/nginx/conf.d/`, not subdirectories. The `dev/` directory configs won't be loaded automatically.
+
+**Symptoms:**
+- `curl http://localhost:3000/todo-app/` returns OpenCode page instead of your app
+- Nginx config test passes but routing doesn't work
+
+**Solution:**
+```bash
+# Check if dev configs are included
+cat /etc/nginx/conf.d/default.conf
+
+# If missing include directive, add it:
+# Edit /etc/nginx/conf.d/default.conf to add this line BEFORE "location /":
+#   include /etc/nginx/conf.d/dev/*.conf;
+
+# Also remove duplicate location / in opencode-server.conf if exists
+rm -f /etc/nginx/conf.d/dev/opencode-server.conf
+
+# Reload Nginx
+kill -HUP $(pgrep -f "nginx: master" | head -1)
+
+# Verify
+curl http://localhost:3000/todo-app/ | head -5
+```
+
+**Correct `/etc/nginx/conf.d/default.conf` structure:**
+```nginx
+server {
+    listen 3000;
+    server_name _;
+    
+    # Include all app-specific location configs (MUST be before location /)
+    include /etc/nginx/conf.d/dev/*.conf;
+    
+    # Default fallback to OpenCode Server (must be last)
+    location / {
+        proxy_pass http://localhost:4096;
+        # ... other proxy settings
+    }
+}
+```
+
+**Issue: Wrong external access URL (CRITICAL)**
+
+**Problem:** There are TWO different domain prefixes:
+- `VSCODE_PROXY_URI` contains the **code-server entrance** domain (port 8080)
+- OpenCode UI uses a **different domain** for the **Nginx entrance** (port 3000)
+
+**These are NOT the same!** Using `VSCODE_PROXY_URI` domain will result in 404.
+
+**Correct approach:** Ask user for the URL they use to access OpenCode, or extract from browser.
+
+```bash
+# WRONG: Using VSCODE_PROXY_URI domain (this is for port 8080, not 3000!)
+echo $VSCODE_PROXY_URI | grep -oP '://\K[^.]+'
+# Output: 8cf849021 (code-server entrance - WRONG for Nginx!)
+
+# CORRECT: The OpenCode UI domain is DIFFERENT
+# User accesses OpenCode at: https://8cf849020.onetest02.olares.com/
+# So the correct app URL is: https://8cf849020.onetest02.olares.com/todo-app/
+```
+
+**Key insight:**
+- `8cf849020` = mymas entrance (port 3000, Nginx) - USE THIS
+- `8cf849021` = mymas-code entrance (port 8080, VS Code Server) - NOT this
+
+**Correct URL format:**
+```
+https://{opencode-ui-domain}.{user}.olares.com/{app-name}/
+
+Example: https://8cf849020.onetest02.olares.com/todo-app/
+```
+
+**How to find the correct domain:**
+1. Ask user: "What URL do you use to access OpenCode?"
+2. Extract the domain prefix from that URL
+3. Append `/{app-name}/` to get the app URL
+
+**Quick way to get correct URL (if user provides OpenCode URL):**
+```bash
+# User provides their OpenCode URL
+OPENCODE_URL="https://8cf849020.onetest02.olares.com/"
+
+# Extract domain and build app URL
+DOMAIN=$(echo $OPENCODE_URL | grep -oP '://\K[^/]+')
+APP_NAME="todo-app"
+echo "https://${DOMAIN}/${APP_NAME}/"
+```
+
 #### Health Check Endpoint
 
 Nginx includes a health check endpoint for monitoring:

@@ -3,8 +3,8 @@
 set -e
 
 KUBECTL="/tmp/kubectl"
-NAMESPACE="opencode-dev-onetest02"
-OWNER="onetest02"
+NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace 2>/dev/null || echo "default")
+OWNER=$(echo "$NAMESPACE" | sed 's/.*-//')
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -188,8 +188,17 @@ $KUBECTL get service "${APP_NAME}-svc" -n "$NAMESPACE"
 echo ""
 
 log_info "应用已部署完成！"
+
+# NOTE: VSCODE_PROXY_URI contains code-server domain (port 8080), NOT Nginx domain (port 3000)!
+# The correct domain is the one user uses to access OpenCode UI.
+# We cannot reliably detect it automatically, so provide a template.
+
 echo ""
-echo "  🌐 访问地址: https://${THIRD_LEVEL_DOMAIN}.${OWNER}.olares.com/${APP_NAME}/"
+echo "  🌐 访问地址: https://{你的OpenCode域名}.${OWNER}.olares.com/${APP_NAME}/"
+echo ""
+echo "  💡 提示: 将 {你的OpenCode域名} 替换为你访问 OpenCode 时的域名前缀"
+echo "     例如: 如果你通过 https://8cf849020.onetest02.olares.com/ 访问 OpenCode"
+echo "     则应用地址为: https://8cf849020.${OWNER}.olares.com/${APP_NAME}/"
 echo ""
 echo "  📁 代码目录: /root/workspace/${APP_NAME}"
 echo ""
