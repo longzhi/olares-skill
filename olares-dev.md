@@ -1240,6 +1240,158 @@ Each deployed app gets:
 | `admission webhook denied` | Missing annotations | Use deployment script with proper annotations |
 | App accessible internally but not externally | Default entrance port is 4096, not 3000 | Patch deployment to use port 3000 (see below) |
 | `No such file or directory` in Pod | hostPath volume can't access OpenCode files | Use ConfigMap for code deployment |
+| Frontend shows "加载失败" | API path mismatch with deployment path | Configure frontend baseURL correctly (see below) |
+
+### Frontend API Path Configuration (CRITICAL)
+
+**Problem:** When frontend app is deployed behind Nginx reverse proxy with a path prefix (e.g., `/voting-app/`), API requests must use the correct base path. This is a **recurring issue** that causes "加载失败" errors.
+
+**Why it fails:**
+- App deployed at: `https://domain/voting-app/`
+- Frontend requests: `https://domain/api/polls` (wrong - absolute path ignores app prefix)
+- Backend expects: `https://domain/voting-app/api/polls` (correct path)
+- Result: API returns HTML (404/wrong route) instead of JSON → "加载失败"
+
+**Root Cause:** Frontend `baseURL` doesn't match the deployed URL path structure.
+
+---
+
+#### Solution 1: Use Deployment Path as API Base (RECOMMENDED)
+
+**When building frontend, set API baseURL to match the deployment path:**
+
+```javascript
+// api.js - Set baseURL to match deployment path
+import axios from 'axios';
+
+const api = axios.create({
+  // WRONG: Relative to domain root - breaks with path prefix
+  // baseURL: '/api',
+  
+  // CORRECT: Include the app path prefix
+  baseURL: '/voting-app/api',  // Matches deployment at /voting-app/
+});
+
+export const getPolls = () => api.get('/polls');
+export const createPoll = (data) => api.post('/polls', data);
+```
+
+**For Vite projects, also set the `base` config:**
+
+```javascript
+// vite.config.js
+export default defineConfig({
+  plugins: [react()],
+  base: '/voting-app/',  // Must match deployment path
+});
+```
+
+---
+
+#### Solution 2: Use Relative Paths (Alternative)
+
+**Use paths relative to current page (no leading slash):**
+
+```javascript
+// WRONG: Absolute path - ignores current URL path
+fetch('/api/todos')
+
+// CORRECT: Relative path - resolved from current page URL
+fetch('api/todos')  // If page is /voting-app/, requests /voting-app/api/todos
+```
+
+**Axios with empty baseURL:**
+
+```javascript
+const api = axios.create({
+  baseURL: '',  // Empty = use relative paths
+});
+
+api.get('api/todos');  // Relative to current page
+```
+
+**Caveat:** Relative paths depend on browser's current URL. If user navigates to `/voting-app/poll/123`, then `fetch('api/todos')` becomes `/voting-app/poll/api/todos` (wrong). Use Solution 1 for complex routing.
+
+---
+
+#### Solution 3: Runtime Path Detection (Dynamic)
+
+**Detect base path at runtime from current URL:**
+
+```javascript
+// api.js - Auto-detect base path
+const getBasePath = () => {
+  // Extract app path from current URL
+  // e.g., https://domain/voting-app/poll/123 → /voting-app
+  const pathParts = window.location.pathname.split('/');
+  const appPath = '/' + pathParts[1];  // First path segment
+  return appPath + '/api';
+};
+
+const api = axios.create({
+  baseURL: getBasePath(),
+});
+```
+
+---
+
+#### Framework-Specific Examples
+
+**React + Vite:**
+```javascript
+// vite.config.js
+export default defineConfig({
+  base: '/my-app/',
+});
+
+// src/api.js
+const api = axios.create({
+  baseURL: '/my-app/api',
+});
+```
+
+**Vue + Vite:**
+```javascript
+// vite.config.js
+export default defineConfig({
+  base: '/my-app/',
+});
+
+// src/services/api.js
+const api = axios.create({
+  baseURL: import.meta.env.BASE_URL + 'api',
+});
+```
+
+**Angular:**
+```typescript
+// environment.ts
+export const environment = {
+  apiUrl: '/my-app/api',
+};
+
+// api.service.ts
+this.http.get(`${environment.apiUrl}/todos`);
+```
+
+**Vanilla JS:**
+```javascript
+const API_BASE = '/my-app/api';
+fetch(`${API_BASE}/todos`);
+```
+
+---
+
+#### Checklist for Frontend Deployment
+
+Before deploying frontend with backend API calls:
+
+- [ ] **Vite `base` config** matches deployment path (`/app-name/`)
+- [ ] **API `baseURL`** includes deployment path (`/app-name/api`)
+- [ ] **Static assets** use relative paths or respect `base` config
+- [ ] **Router basename** (if using client-side routing) matches deployment path
+- [ ] **Rebuild frontend** after changing config (`npm run build`)
+- [ ] **Verify** the built JS files contain correct paths (`grep baseURL dist/assets/*.js`)
 
 ### ⚠️ CRITICAL: First-Time Setup Requirements
 
