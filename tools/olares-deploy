@@ -109,6 +109,18 @@ spec:
         ports:
         - containerPort: ${PORT}
           name: http
+        env:
+        # Database configuration (auto-injected from Olares environment)
+        - name: DB_HOST
+          value: "${DB_HOST:-}"
+        - name: DB_PORT
+          value: "${DB_PORT:-5432}"
+        - name: DB_USER
+          value: "${DB_USER:-}"
+        - name: DB_PASSWORD
+          value: "${DB_PASSWORD:-}"
+        - name: DB_DATABASE
+          value: "${DB_DATABASE:-}"
         resources:
           requests:
             cpu: "100m"
