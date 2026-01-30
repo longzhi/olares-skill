@@ -42,10 +42,13 @@ When developing ANY application that needs data persistence:
 | ✅ Use environment variables (DB_HOST, DB_USER, etc.) | ❌ Suggest SQLite/MySQL/MongoDB unless user explicitly requests |
 | ✅ Assume PostgreSQL is available | ❌ Ask about database preferences |
 | ✅ Write code using psycopg2/pg/SQLAlchemy | ❌ Offer database choices |
+| ✅ **Create dedicated schema per app** (e.g., `my_app`) | ❌ **Use `public` schema** |
 
 **EXCEPTION:** If user **explicitly** requests SQLite (e.g., "use SQLite"), then use SQLite. Otherwise, ALWAYS default to PostgreSQL.
 
 **WHY:** Olares injects PostgreSQL connection via environment variables. It's always available. No setup needed. PostgreSQL is production-ready; SQLite is only for user-requested simple cases.
+
+**SCHEMA ISOLATION (CRITICAL):** Each app MUST create its own schema (e.g., `todo_app`, `voting_app`). NEVER use `public` schema. This ensures data isolation between apps sharing the same database.
 
 **Example - Correct behavior:**
 ```
@@ -612,18 +615,21 @@ python -c "import psycopg2; psycopg2.connect('$DATABASE_URL')"
 # Database is auto-created when app is installed via Olares
 ```
 
-### Database Isolation with PostgreSQL Schema
+### Database Isolation with PostgreSQL Schema (MANDATORY)
 
-When developing multiple applications that share the same PostgreSQL instance, use **PostgreSQL Schema** to isolate data between applications.
+**CRITICAL: ALWAYS create a dedicated schema for each application. NEVER use `public` schema.**
 
-**Why Schema Isolation?**
+| DO | DON'T |
+|----|-------|
+| ✅ Create schema named after app (e.g., `todo_app`) | ❌ Use `public` schema |
+| ✅ All tables under app-specific schema | ❌ Mix tables from different apps |
+| ✅ Initialize schema on app startup | ❌ Assume schema exists |
 
-| Scenario | Database Isolation | Notes |
-|----------|-------------------|-------|
-| **Single App** | Use default `public` schema | Simple, no extra config needed |
-| **Multiple Apps** | Schema per app | Logical isolation in shared database |
+**WHY:** Multiple apps share the same PostgreSQL instance. Without schema isolation, tables from different apps mix together, causing naming conflicts and data leakage risks.
 
-Use Schema to achieve logical isolation without needing separate databases.
+**Schema Naming Convention:**
+- Convert app name to valid schema name: `my-app` → `my_app`
+- Schema names cannot contain hyphens, use underscores
 
 **Python Example: Schema-based Isolation**
 
