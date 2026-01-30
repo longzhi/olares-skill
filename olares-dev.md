@@ -2101,6 +2101,32 @@ options:
 
 ## Troubleshooting
 
+### API Timeout Issues (CRITICAL)
+
+**Problem**: API requests are cut off after exactly 15 seconds.
+
+**Cause**: Olares uses Envoy sidecar with a default 15-second timeout for all routes.
+
+**Solution**: Add `apiTimeout: 0` to `OlaresManifest.yaml`:
+
+```yaml
+options:
+  apiTimeout: 0  # Unlimited timeout (default is 15 seconds)
+  analytics:
+    enabled: false
+```
+
+**After modifying**:
+1. Bump version in both `Chart.yaml` and `OlaresManifest.yaml`
+2. Re-package: `helm package /path/to/chart`
+3. Upload and upgrade via Market
+
+**Verification**: Check ConfigMap `olares-sidecar-config-{appname}` in Control Hub → should show `timeout: 0s`
+
+See [docs/ENVOY_TIMEOUT.md](docs/ENVOY_TIMEOUT.md) for complete details.
+
+---
+
 ### App Not Starting
 
 1. Check container logs via `olares-manage logs <app-name>`
