@@ -120,6 +120,49 @@ fetch(`${BASE_PATH}api/users`)
 // <script src="static/app.js">
 ```
 
+#### Framework-Specific Solutions
+
+**Vue (Vite):**
+```javascript
+// vite.config.js - set base to './' for relative paths
+export default defineConfig({
+  base: './',  // Makes all assets relative
+})
+
+// In components, use import.meta.env.BASE_URL or relative fetch
+fetch(import.meta.env.BASE_URL + 'api/words')
+```
+
+**React (Create React App):**
+```javascript
+// package.json - add homepage
+{ "homepage": "." }
+
+// In components, use process.env.PUBLIC_URL or relative fetch
+fetch(process.env.PUBLIC_URL + '/api/words')
+
+// Or use runtime detection (works without build config)
+const BASE = window.location.pathname.replace(/\/[^/]*$/, '/');
+fetch(BASE + 'api/words')
+```
+
+**Vue/React (Runtime detection - RECOMMENDED):**
+```javascript
+// Works with ANY framework, no build config needed
+// Put in a shared utils file
+export const getBasePath = () => {
+  const path = window.location.pathname;
+  return path.substring(0, path.lastIndexOf('/') + 1) || '/';
+};
+
+// Usage
+import { getBasePath } from './utils';
+fetch(getBasePath() + 'api/words');
+```
+
+**Pure HTML/JS (No framework):**
+Use the BASE_PATH pattern shown above.
+
 **Why this matters:** Your app works at `localhost:8080/` during development, but deploys to `domain.com/{app-name}/`. Absolute paths break.
 
 ---
