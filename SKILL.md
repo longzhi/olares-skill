@@ -73,20 +73,54 @@ def init_db():
     conn.close()
 ```
 
-### API Path Handling (Rule 4)
+### API Path Handling (Rule 4) ⚠️ CRITICAL
 
-Apps are deployed at `/{app-name}/` subpath. Frontend **MUST NOT** use absolute paths.
+Apps are deployed at `/{app-name}/` subpath, NOT at root `/`.
+
+**Development vs Production:**
+```
+Development:  http://localhost:8080/api/words     ← Works
+Production:   https://domain.com/api/words       ← 404! Wrong!
+              https://domain.com/ielts-vocab/api/words  ← Correct
+```
+
+**Frontend MUST use dynamic basePath. Copy this pattern:**
 
 ```javascript
-// ❌ Wrong - absolute path points to root, causing 404
-fetch('/api/todos')
+// ========================================
+// MANDATORY: Put this at the TOP of your JS file
+// ========================================
+const BASE_PATH = (() => {
+    const path = window.location.pathname;
+    // Remove trailing filename if present (e.g., /app/index.html -> /app/)
+    const dir = path.substring(0, path.lastIndexOf('/') + 1);
+    return dir || '/';
+})();
 
-// ✅ Correct - dynamically get base path
-const basePath = window.location.pathname.endsWith('/') 
-    ? window.location.pathname 
-    : window.location.pathname + '/';
-fetch(basePath + 'api/todos')
+// ========================================
+// All API calls MUST use BASE_PATH
+// ========================================
+// ❌ WRONG - will break in production
+fetch('/api/words')
+axios.get('/api/users')
+
+// ✅ CORRECT - works everywhere
+fetch(BASE_PATH + 'api/words')
+fetch(`${BASE_PATH}api/users`)
+
+// ========================================
+// For static resources in HTML, use relative paths
+// ========================================
+// ❌ WRONG
+// <link href="/static/style.css">
+// <script src="/static/app.js">
+
+// ✅ CORRECT (no leading slash = relative to current path)
+// <link href="static/style.css">
+// <script src="static/app.js">
 ```
+
+**Why this matters:** Your app works at `localhost:8080/` during development, but deploys to `domain.com/{app-name}/`. Absolute paths break.
 
 ---
 
