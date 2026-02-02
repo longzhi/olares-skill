@@ -126,10 +126,10 @@ User confirms → Execute deployment
 
 ```bash
 # Format
-olares-deploy <app-name> <image> <port> [startup-command]
+/root/.local/bin/olares-deploy <app-name> <image> <port> [startup-command]
 
 # Example
-olares-deploy todo-app python:3.11-slim 8080 "pip install -r requirements.txt && python app.py"
+/root/.local/bin/olares-deploy todo-app python:3.11-slim 8080 "pip install -r requirements.txt && python app.py"
 
 # Must update Nginx after deployment
 python3 /root/.local/bin/olares-nginx-config
@@ -144,9 +144,9 @@ python3 /root/.local/bin/olares-nginx-config
 📁 Code directory: /root/workspace/{app-name}/
 
 Management commands:
-• View logs: olares-manage logs {app-name}
-• View status: olares-manage info {app-name}
-• Delete app: olares-manage delete {app-name}
+• View logs: /root/.local/bin/olares-manage logs {app-name}
+• View status: /root/.local/bin/olares-manage info {app-name}
+• Delete app: /root/.local/bin/olares-manage delete {app-name}
 ```
 
 ---
@@ -154,11 +154,11 @@ Management commands:
 ## 🛠️ Management Commands
 
 ```bash
-olares-manage list              # List all apps
-olares-manage info <app-name>   # Show app details
-olares-manage logs <app-name>   # View logs
-olares-manage delete <app-name> # Delete app
-olares-urls                     # Show all URLs
+/root/.local/bin/olares-manage list              # List all apps
+/root/.local/bin/olares-manage info <app-name>   # Show app details
+/root/.local/bin/olares-manage logs <app-name>   # View logs
+/root/.local/bin/olares-manage delete <app-name> # Delete app
+/root/.local/bin/olares-urls                     # Show all URLs
 ```
 
 ---
@@ -180,7 +180,7 @@ Olares Ingress → OpenCode Container:3000 (Nginx)
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
-| 502 Bad Gateway | Pod not running | `olares-manage logs <app-name>` |
+| 502 Bad Gateway | Pod not running | `/root/.local/bin/olares-manage logs <app-name>` |
 | 404 Not Found | Nginx not configured | `python3 /root/.local/bin/olares-nginx-config` |
 | Database connection failed | Env vars not set | Check OlaresManifest.yaml |
 
@@ -228,3 +228,18 @@ Where would you like to put the project?  ← Violates Rule 3
 App created! Let me know if you have questions.  ← Violates Rule 1
 fetch('/api/todos')  ← Violates Rule 4 (should use relative path)
 ```
+
+---
+
+## ⚠️ Pre-Send Checklist (MANDATORY)
+
+**Before sending ANY development response, you MUST verify:**
+
+| Check | Rule | If Failed |
+|-------|------|-----------|
+| ✅ Response ends with "Deploy to Olares?" prompt | Rule 1 | **STOP. Add the publish prompt before sending.** |
+| ✅ Database uses dedicated schema (not public) | Rule 2 | Fix the code to use app-specific schema |
+| ✅ Project in `/root/workspace/<app-name>/` | Rule 3 | Move files to correct location |
+| ✅ Frontend uses relative API paths | Rule 4 | Fix fetch() calls to use basePath |
+
+**If ANY check fails, your response is INCOMPLETE. Fix it before sending.**
