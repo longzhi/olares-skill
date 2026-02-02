@@ -134,6 +134,7 @@ location /{app['name']}/ {{
 
 
 def ensure_default_conf():
+    """Ensure default.conf has include directive WITHOUT overwriting user's custom settings"""
     default_conf = Path(DEFAULT_CONF)
     
     if not default_conf.exists():
@@ -147,9 +148,22 @@ def ensure_default_conf():
     if "include /etc/nginx/conf.d/dev/*.conf" in content:
         return True
     
-    # Need to update default.conf
-    print(f"⚠️  Updating {DEFAULT_CONF} to include directive")
-    default_conf.write_text(DEFAULT_CONF_TEMPLATE)
+    # Insert include directive BEFORE first location block (preserve user's timeout settings)
+    print(f"⚠️  Adding include directive to {DEFAULT_CONF} (preserving existing settings)")
+    
+    # Find the position to insert (before first location block)
+    if "location / {" in content:
+        new_content = content.replace(
+            "location / {",
+            "# Include app routes (auto-added)\n    include /etc/nginx/conf.d/dev/*.conf;\n\n    location / {"
+        )
+        default_conf.write_text(new_content)
+        print(f"✓ Added include directive (existing config preserved)")
+    else:
+        # No location block found, use template as fallback
+        print(f"⚠️  No location block found, creating from template")
+        default_conf.write_text(DEFAULT_CONF_TEMPLATE)
+    
     return True
 
 
